@@ -69,13 +69,13 @@
             height: 100%;
             background: #000;
         }
-        /* Native HTML Overlays for Animated DK GIF & Princess Peach */
+        /* Native HTML Overlays for Animated DK & Princess Peach */
         .sprite-dk {
             position: absolute;
-            left: 20%;
-            top: 13%;
-            width: 22%;
-            height: 16%;
+            left: 18%;
+            top: 12%;
+            width: 26%;
+            height: 18%;
             image-rendering: pixelated;
             pointer-events: none;
             z-index: 5;
@@ -178,8 +178,8 @@
 
     <!-- Game Container -->
     <div class="game-container">
-        <!-- Native Animated GIF & Peach Overlays -->
-        <img id="dk-sprite" src="donkey Kong.gif" class="sprite-dk" alt="Donkey Kong">
+        <!-- Native Animated DK & Peach Overlays -->
+        <img id="dk-sprite" src="donkey kong.gif" class="sprite-dk" alt="Donkey Kong">
         <img id="peach-sprite" src="princess.png" class="sprite-peach" alt="Princess Peach">
 
         <canvas id="gameCanvas" width="224" height="256"></canvas>
@@ -301,7 +301,7 @@
             windForce: 0,
             jumpBoost: 0,
             gravity: 0.25,
-            spawnRate: 140,
+            throwInterval: 120, // Synchronized throw timing
             hasBrokenLadders: false,
             title: "GIRDER ASCENT"
         };
@@ -339,7 +339,7 @@
         let ladders = [];
         let hammers = [];
         let peach = { x: 104, y: 18, width: 16, height: 24 };
-        let donkeyKong = { x: 44, y: 22, width: 44, height: 32 };
+        let donkeyKong = { x: 44, y: 16, width: 44, height: 28 };
         let barrels = [];
         let fireballs = [];
 
@@ -355,7 +355,7 @@
             levelConfig.windForce = (lvl >= 25 && lvl % 3 === 0) ? 0.12 : 0;
             levelConfig.jumpBoost = (lvl >= 30 && lvl % 7 === 0) ? -0.4 : 0;
             levelConfig.gravity = 0.25;
-            levelConfig.spawnRate = Math.max(70, 140 - (lvl * 1.5));
+            levelConfig.throwInterval = Math.max(50, 120 - (lvl * 1.5)); // Barrels leave matching DK's throws
             levelConfig.hasBrokenLadders = (lvl >= 5);
 
             let twistText = "";
@@ -389,7 +389,7 @@
             if (lvl > 3) hammers.push({ x: 170, y: 110, collected: false });
 
             peach = { x: 104, y: 18, width: 16, height: 24 };
-            donkeyKong = { x: 44, y: 16, width: 44, height: 28 }; // Positioned right on platform y=44
+            donkeyKong = { x: 44, y: 16, width: 44, height: 28 };
 
             for(let f = 0; f < levelConfig.extraFireballs; f++) {
                 fireballs.push(new Fireball(60 + (f * 40), 160));
@@ -606,8 +606,9 @@
 
             mario.update();
 
+            // Synchronized Barrel Spawning tied to Donkey Kong's throw rhythm
             barrelSpawnTimer++;
-            if (barrelSpawnTimer > levelConfig.spawnRate) {
+            if (barrelSpawnTimer > levelConfig.throwInterval) {
                 barrels.push(new Barrel(donkeyKong.x + 28, donkeyKong.y + 12, platforms.length - 2));
                 barrelSpawnTimer = 0;
             }
