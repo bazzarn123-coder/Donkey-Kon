@@ -27,13 +27,7 @@
         }
         .hidden { display: none !important; }
         .arcade-font { font-family: 'Press Start 2P', monospace; }
-        canvas {
-            image-rendering: pixelated;
-            image-rendering: crisp-edges;
-            width: 100%;
-            height: 100%;
-            background: #000;
-        }
+        
         .hud {
             width: 100%;
             max-width: 420px;
@@ -67,6 +61,34 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+        /* Native HTML Overlays for Animated DK GIF & Princess Peach */
+        .sprite-dk {
+            position: absolute;
+            left: 20%;
+            top: 13%;
+            width: 22%;
+            height: 16%;
+            image-rendering: pixelated;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .sprite-peach {
+            position: absolute;
+            left: 46%;
+            top: 7%;
+            width: 10%;
+            height: 15%;
+            image-rendering: pixelated;
+            pointer-events: none;
+            z-index: 5;
         }
         .overlay {
             position: absolute;
@@ -156,6 +178,10 @@
 
     <!-- Game Container -->
     <div class="game-container">
+        <!-- Native Animated GIF & Peach Overlays -->
+        <img id="dk-sprite" src="donkey Kong.gif" class="sprite-dk" alt="Donkey Kong">
+        <img id="peach-sprite" src="princess.png" class="sprite-peach" alt="Princess Peach">
+
         <canvas id="gameCanvas" width="224" height="256"></canvas>
 
         <!-- Start Screen Overlay -->
@@ -258,16 +284,6 @@
         const sound = new SoundEngine();
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-
-        const dkImage = new Image();
-        dkImage.src = 'donkey Kong.gif';
-        let dkLoaded = false;
-        dkImage.onload = () => { dkLoaded = true; };
-
-        const peachImage = new Image();
-        peachImage.src = 'princess.png';
-        let peachLoaded = false;
-        peachImage.onload = () => { peachLoaded = true; };
 
         let gameState = 'START'; 
         let score = 3700;
@@ -373,7 +389,7 @@
             if (lvl > 3) hammers.push({ x: 170, y: 110, collected: false });
 
             peach = { x: 104, y: 18, width: 16, height: 24 };
-            donkeyKong = { x: 44, y: 22, width: 44, height: 32 };
+            donkeyKong = { x: 44, y: 16, width: 44, height: 28 }; // Positioned right on platform y=44
 
             for(let f = 0; f < levelConfig.extraFireballs; f++) {
                 fireballs.push(new Fireball(60 + (f * 40), 160));
@@ -752,36 +768,6 @@
             hammers.forEach(h => {
                 if (!h.collected) ctx.fillText('🔨', h.x + 6, h.y + 6);
             });
-
-            if (dkLoaded && dkImage.naturalWidth !== 0) {
-                ctx.drawImage(dkImage, donkeyKong.x, donkeyKong.y, donkeyKong.width, donkeyKong.height);
-            } else {
-                const dkX = donkeyKong.x, dkY = donkeyKong.y;
-                let thumpOffset = Math.floor(frameCount / 15) % 2 === 0 ? 0 : 2;
-                ctx.fillStyle = '#7a3b10';
-                ctx.fillRect(dkX + 6, dkY + 8, 28, 18);
-                ctx.fillStyle = '#d48855';
-                ctx.fillRect(dkX + 10, dkY + 12, 20, 10);
-                ctx.fillStyle = '#7a3b10';
-                ctx.fillRect(dkX + 10, dkY, 20, 12);
-                ctx.fillStyle = '#e8b896';
-                ctx.fillRect(dkX + 12, dkY + 4, 16, 8);
-                ctx.fillStyle = '#000000';
-                ctx.fillRect(dkX + 14, dkY + 5, 3, 3);
-                ctx.fillRect(dkX + 23, dkY + 5, 3, 3);
-                ctx.fillStyle = '#7a3b10';
-                ctx.fillRect(dkX - 2, dkY + 10 + thumpOffset, 10, 14);
-                ctx.fillRect(dkX + 32, dkY + 10 + thumpOffset, 10, 14);
-            }
-
-            if (peachLoaded && peachImage.naturalWidth !== 0) {
-                ctx.drawImage(peachImage, peach.x, peach.y, peach.width, peach.height);
-            } else {
-                ctx.font = '20px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('👸', peach.x + 8, peach.y + 12);
-            }
 
             barrels.forEach(b => b.draw());
             fireballs.forEach(f => f.draw());
