@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Donkey Kong Mobile Arcade - NES Edition</title>
+    <title>Donkey Kong Mobile Arcade - Joystick Edition</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕹️</text></svg>">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
@@ -115,7 +115,7 @@
             margin-top: 12px;
         }
 
-        /* --- NES CONTROLLER UI STYLING --- */
+        /* --- NES CONTROLLER WITH VIRTUAL JOYSTICK --- */
         .nes-pad {
             width: 100%;
             max-width: 400px;
@@ -131,34 +131,30 @@
             margin-top: 8px;
             position: relative;
         }
-        .nes-dpad {
+        
+        /* Joystick Base & Knob */
+        .nes-joystick-base {
             position: relative;
-            width: 75px;
-            height: 75px;
-        }
-        .nes-dpad-btn {
-            position: absolute;
-            background: #111;
-            border: 1px solid #444;
+            width: 74px;
+            height: 74px;
+            background: #151515;
+            border: 2px solid #444;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #666;
-            font-size: 12px;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.8);
         }
-        .nes-dpad-btn:active, .nes-dpad-btn.active {
-            background: #000;
-            color: #fff;
-        }
-        #btn-up { top: 0; left: 25px; width: 25px; height: 26px; border-radius: 3px 3px 0 0; }
-        #btn-down { bottom: 0; left: 25px; width: 25px; height: 26px; border-radius: 0 0 3px 3px; }
-        #btn-left { top: 25px; left: 0; width: 26px; height: 25px; border-radius: 3px 0 0 3px; }
-        #btn-right { top: 25px; right: 0; width: 26px; height: 25px; border-radius: 0 3px 3px 0; }
-        .nes-dpad-center {
+        .nes-joystick-stick {
             position: absolute;
-            top: 25px; left: 25px;
-            width: 25px; height: 25px;
-            background: #111;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle at 35% 35%, #555, #111);
+            border: 2px solid #666;
+            border-radius: 50%;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+            cursor: pointer;
+            transition: transform 0.05s linear;
         }
 
         .nes-middle {
@@ -207,7 +203,7 @@
             color: white;
             cursor: pointer;
         }
-        .nes-round-btn:active {
+        .nes-round-btn:active, .nes-round-btn.active {
             background: #990000;
             transform: translateY(2px);
             box-shadow: 0 2px 3px rgba(0,0,0,0.5);
@@ -266,7 +262,7 @@
                 AVOID BARRELS & GRAB 🔨 HAMMERS!
             </p>
             <button id="start-btn" class="arcade-btn">PRESS START</button>
-            <div style="color: #a3a3a3; font-size: 5px; margin-top: 14px;">NES CONTROLLER READY</div>
+            <div style="color: #a3a3a3; font-size: 5px; margin-top: 14px;">MULTI-TOUCH JOYSTICK & JUMP READY</div>
         </div>
 
         <!-- Game Over / Victory Overlay -->
@@ -277,15 +273,11 @@
         </div>
     </div>
 
-    <!-- NES Nintendo Entertainment System Controller Pad -->
+    <!-- NES Pad with Joystick & Multi-touch Action Buttons -->
     <div class="nes-pad">
-        <!-- D-Pad -->
-        <div class="nes-dpad">
-            <div id="btn-up" class="nes-dpad-btn">▲</div>
-            <div id="btn-left" class="nes-dpad-btn">◀</div>
-            <div class="nes-dpad-center"></div>
-            <div id="btn-right" class="nes-dpad-btn">▶</div>
-            <div id="btn-down" class="nes-dpad-btn">▼</div>
+        <!-- Virtual Joystick Area -->
+        <div id="joystick-base" class="nes-joystick-base">
+            <div id="joystick-stick" class="nes-joystick-stick"></div>
         </div>
 
         <!-- Select / Start Center Pills -->
@@ -300,7 +292,7 @@
             </div>
         </div>
 
-        <!-- Red A/B Round Jump Buttons -->
+        <!-- Red A/B Jump Buttons -->
         <div class="nes-action-buttons">
             <div class="nes-btn-group">
                 <button id="btn-b" class="nes-round-btn">B</button>
@@ -414,22 +406,99 @@
         });
         window.addEventListener('keyup', e => { keys[e.key] = false; });
 
-        const bindTouch = (id, flagName, isJump = false) => {
+        // --- MULTI-TOUCH VIRTUAL JOYSTICK LOGIC ---
+        const joystickBase = document.getElementById('joystick-base');
+        const joystickStick = document.getElementById('joystick-stick');
+        let joystickTouchId = null;
+
+        joystickBase.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (joystickTouchId === null) {
+                const touch = e.changedTouches[0];
+                joystickTouchId = touch.identifier;
+                updateJoystick(touch);
+            }
+        }, {passive: false});
+
+        window.addEventListener('touchmove', (e) => {
+            if (joystickTouchId !== null) {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    if (touch.identifier === joystickTouchId) {
+                        e.preventDefault();
+                        updateJoystick(touch);
+                        break;
+                    }
+                }
+            }
+        }, {passive: false});
+
+        const resetJoystick = (e) => {
+            if (joystickTouchId !== null) {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === joystickTouchId) {
+                        joystickTouchId = null;
+                        window.touchLeft = false;
+                        window.touchRight = false;
+                        window.touchUp = false;
+                        window.touchDown = false;
+                        joystickStick.style.transform = `translate(0px, 0px)`;
+                        break;
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('touchend', resetJoystick);
+        window.addEventListener('touchcancel', resetJoystick);
+
+        function updateJoystick(touch) {
+            const rect = joystickBase.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            let dx = touch.clientX - centerX;
+            let dy = touch.clientY - centerY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const maxRadius = 25;
+
+            if (distance > maxRadius) {
+                dx = (dx / distance) * maxRadius;
+                dy = (dy / distance) * maxRadius;
+            }
+
+            joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
+
+            const threshold = 8;
+            window.touchLeft = dx < -threshold;
+            window.touchRight = dx > threshold;
+            window.touchUp = dy < -threshold;
+            window.touchDown = dy > threshold;
+        }
+
+        // --- MULTI-TOUCH JUMP BUTTONS (A & B) ---
+        const bindJumpButton = (id) => {
             const el = document.getElementById(id);
             if (!el) return;
-            const pressOn = (e) => { e.preventDefault(); el.classList.add('active'); window[flagName] = true; if (isJump && gameState === 'PLAYING') mario.jump(); };
-            const pressOff = (e) => { e.preventDefault(); el.classList.remove('active'); window[flagName] = false; };
-            el.addEventListener('touchstart', pressOn, {passive: false});
-            el.addEventListener('touchend', pressOff, {passive: false});
-            el.addEventListener('mousedown', pressOn);
-            el.addEventListener('mouseup', pressOff);
+            el.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                el.classList.add('active');
+                if (gameState === 'PLAYING') mario.jump();
+            }, {passive: false});
+            el.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                el.classList.remove('active');
+            }, {passive: false});
+            el.addEventListener('mousedown', () => {
+                el.classList.add('active');
+                if (gameState === 'PLAYING') mario.jump();
+            });
+            el.addEventListener('mouseup', () => {
+                el.classList.remove('active');
+            });
         };
-        bindTouch('btn-left', 'touchLeft');
-        bindTouch('btn-right', 'touchRight');
-        bindTouch('btn-up', 'touchUp');
-        bindTouch('btn-down', 'touchDown');
-        bindTouch('btn-jump', 'jumpFlag', true);
-        bindTouch('btn-b', 'jumpFlag', true); // B button also jumps
+        bindJumpButton('btn-jump');
+        bindJumpButton('btn-b');
 
         let platforms = [];
         let ladders = [];
