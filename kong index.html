@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Donkey Kong Mobile Arcade</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕹️</text></svg>">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Press Start 2P', monospace;
+            background-color: #000000;
+            color: #ffffff;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .hidden { display: none !important; }
+        .arcade-font { font-family: 'Press Start 2P', monospace; }
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+        .hud {
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            font-size: 8px;
+            margin-bottom: 4px;
+            padding: 0 8px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .banner {
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            font-size: 7px;
+            color: #facc15;
+            margin-bottom: 4px;
+            height: 12px;
+        }
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 420px;
+            aspect-ratio: 4/5;
+            background: black;
+            border: 2px solid #525252;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            text-align: center;
+            z-index: 20;
+        }
+        .arcade-btn {
+            background-color: #dc2626;
+            color: white;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            padding: 12px 20px;
+            border: 2px solid white;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255,0,0,0.8);
+            margin-top: 12px;
+        }
+        .controls {
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding: 0 12px;
+        }
+        .ctrl-group { display: flex; gap: 8px; }
+        .ctrl-btn {
+            width: 48px;
+            height: 48px;
+            background: #262626;
+            color: white;
+            font-size: 16px;
+            border: 1px solid #525252;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .jump-btn {
+            width: 64px;
+            height: 48px;
+            background: #dc2626;
+            color: white;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            border: 1px solid #f87171;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HUD -->
+    <div class="hud">
+        <div>
+            <span style="color: #dc2626;">1UP</span><br>
+            <span id="score-display">003700</span><br>
+            <div id="lives-container" style="display:flex; gap:4px; margin-top:4px;"></div>
+        </div>
+        <div style="text-align: center;">
+            <span style="color: #dc2626;">HIGH SCORE</span><br>
+            <span id="highscore-display">007650</span>
+        </div>
+        <div style="text-align: right;">
+            <div style="color: #3b82f6; margin-bottom:2px;"><span id="level-display">L=00</span></div>
+            <div style="border: 1px solid #60a5fa; padding: 2px;">
+                <span style="color: #dc2626; font-size: 7px;">BONUS</span><br>
+                <span id="bonus-display" style="font-size: 9px;">3900</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banner -->
+    <div id="level-banner" class="banner">LEVEL 1: GIRDER ASCENT</div>
+
+    <!-- Game Container -->
+    <div class="game-container">
+        <canvas id="gameCanvas" width="224" height="256"></canvas>
+
+        <!-- Start Screen Overlay -->
+        <div id="start-screen" class="overlay">
+            <h1 style="color: #dc2626; font-size: 14px; margin-bottom: 12px;">DONKEY KONG</h1>
+            <p style="color: #facc15; font-size: 8px; line-height: 1.6; margin-bottom: 16px;">
+                RESCUE PRINCESS PEACH ACROSS 50 LEVELS!<br>
+                AVOID BARRELS & GRAB 🔨 HAMMERS!
+            </p>
+            <button id="start-btn" class="arcade-btn">TAP TO PLAY</button>
+            <div style="color: #a3a3a3; font-size: 6px; margin-top: 16px;">USE ON-SCREEN TOUCH CONTROLS BELOW</div>
+        </div>
+
+        <!-- Game Over / Victory Overlay -->
+        <div id="message-screen" class="overlay hidden">
+            <h2 id="message-title" style="color: #dc2626; font-size: 12px; margin-bottom: 10px;">GAME OVER</h2>
+            <p id="message-subtitle" style="font-size: 8px; margin-bottom: 16px;">SCORE: 00000</p>
+            <button id="restart-btn" class="arcade-btn">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <!-- Mobile Virtual Controls -->
+    <div class="controls">
+        <div class="ctrl-group">
+            <button id="btn-left" class="ctrl-btn">←</button>
+            <button id="btn-right" class="ctrl-btn">→</button>
+        </div>
+        <div class="ctrl-group">
+            <button id="btn-up" class="ctrl-btn">↑</button>
+            <button id="btn-down" class="ctrl-btn">↓</button>
+        </div>
+        <div>
+            <button id="btn-jump" class="jump-btn">JUMP</button>
+        </div>
+    </div>
+
+    <script>
+        class SoundEngine {
+            constructor() { this.ctx = null; }
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            playJump() {
+                this.init(); if (!this.ctx) return;
+                const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(450, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.15);
+            }
+            playScore() {
+                this.init(); if (!this.ctx) return;
+                const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(800, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.2);
+            }
+            playHammerSmash() {
+                this.init(); if (!this.ctx) return;
+                const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(40, this.ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.2);
+            }
+            playDeath() {
+                this.init(); if (!this.ctx) return;
+                const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(80, this.ctx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.5);
+            }
+            playVictory() {
+                this.init(); if (!this.ctx) return;
+                const notes = [261.63, 329.63, 392.00, 523.25];
+                notes.forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.12);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime + i * 0.12);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + i * 0.12 + 0.1);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + i * 0.12); osc.stop(this.ctx.currentTime + i * 0.12 + 0.1);
+                });
+            }
+        }
+
+        const sound = new SoundEngine();
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const dkImage = new Image();
+        dkImage.src = 'donkey Kong.gif';
+        let dkLoaded = false;
+        dkImage.onload = () => { dkLoaded = true; };
+
+        const peachImage = new Image();
+        peachImage.src = 'princess.png';
+        let peachLoaded = false;
+        peachImage.onload = () => { peachLoaded = true; };
+
+        let gameState = 'START'; 
+        let score = 3700;
+        let highScore = 7650;
+        let bonus = 3900;
+        let lives = 3;
+        let currentLevel = 0; 
+        let frameCount = 0;
+        let bonusTimer = 195;
+
+        let levelConfig = {
+            barrelSpeedMultiplier: 1.0,
+            extraFireballs: 0,
+            slippery: false,
+            windForce: 0,
+            jumpBoost: 0,
+            gravity: 0.25,
+            spawnRate: 140,
+            hasBrokenLadders: false,
+            title: "GIRDER ASCENT"
+        };
+
+        const keys = {};
+        window.touchLeft = false; window.touchRight = false;
+        window.touchUp = false; window.touchDown = false;
+
+        window.addEventListener('keydown', e => {
+            if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+            keys[e.key] = true;
+            if ((e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') && gameState === 'PLAYING') {
+                mario.jump();
+            }
+        });
+        window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+        const bindTouch = (id, flagName, isJump = false) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const pressOn = (e) => { e.preventDefault(); window[flagName] = true; if (isJump && gameState === 'PLAYING') mario.jump(); };
+            const pressOff = (e) => { e.preventDefault(); window[flagName] = false; };
+            el.addEventListener('touchstart', pressOn, {passive: false});
+            el.addEventListener('touchend', pressOff, {passive: false});
+            el.addEventListener('mousedown', pressOn);
+            el.addEventListener('mouseup', pressOff);
+        };
+        bindTouch('btn-left', 'touchLeft');
+        bindTouch('btn-right', 'touchRight');
+        bindTouch('btn-up', 'touchUp');
+        bindTouch('btn-down', 'touchDown');
+        bindTouch('btn-jump', 'jumpFlag', true);
+
+        let platforms = [];
+        let ladders = [];
+        let hammers = [];
+        let peach = { x: 104, y: 18, width: 16, height: 24 };
+        let donkeyKong = { x: 44, y: 22, width: 44, height: 32 };
+        let barrels = [];
+        let fireballs = [];
+
+        function loadLevel(lvl) {
+            barrels = [];
+            fireballs = [];
+            hammers = [];
+            mario.reset();
+
+            levelConfig.barrelSpeedMultiplier = 1.0 + (lvl * 0.025);
+            levelConfig.extraFireballs = Math.floor(lvl / 12);
+            levelConfig.slippery = (lvl >= 20 && lvl % 5 === 0);
+            levelConfig.windForce = (lvl >= 25 && lvl % 3 === 0) ? 0.12 : 0;
+            levelConfig.jumpBoost = (lvl >= 30 && lvl % 7 === 0) ? -0.4 : 0;
+            levelConfig.gravity = 0.25;
+            levelConfig.spawnRate = Math.max(70, 140 - (lvl * 1.5));
+            levelConfig.hasBrokenLadders = (lvl >= 5);
+
+            let twistText = "";
+            if (levelConfig.hasBrokenLadders) twistText = " - BROKEN LADDERS ACTIVE!";
+            if (levelConfig.slippery) twistText += " [ICE]";
+
+            levelConfig.title = `LEVEL ${lvl}: ${getUniqueLevelName(lvl)}${twistText}`;
+            document.getElementById('level-banner').innerText = levelConfig.title;
+
+            platforms = [
+                { x1: 16, y1: 240, x2: 208, y2: 240, slope: 0 },
+                { x1: 24, y1: 198, x2: 200, y2: 184, slope: -0.07 },
+                { x1: 24, y1: 146, x2: 200, y2: 160, slope: 0.07 },
+                { x1: 24, y1: 120, x2: 200, y2: 106, slope: -0.07 },
+                { x1: 24, y1: 68,  x2: 200, y2: 82,  slope: 0.07 },
+                { x1: 64, y1: 44,  x2: 160, y2: 44,  slope: 0 }
+            ];
+
+            ladders = [
+                { x: 64,  yTop: 184, yBottom: 240, broken: false },
+                { x: 176, yTop: 184, yBottom: 240, broken: false },
+                { x: 96,  yTop: 146, yBottom: 198, broken: levelConfig.hasBrokenLadders && (lvl % 2 === 0) },
+                { x: 144, yTop: 106, yBottom: 160, broken: levelConfig.hasBrokenLadders && (lvl % 3 === 0) },
+                { x: 48,  yTop: 120, yBottom: 146, broken: false },
+                { x: 96,  yTop: 68,  yBottom: 106, broken: levelConfig.hasBrokenLadders && (lvl % 4 === 0) },
+                { x: 144, yTop: 68,  yBottom: 106, broken: false },
+                { x: 136, yTop: 44,  yBottom: 68,  broken: false }
+            ];
+
+            hammers.push({ x: 36, y: 110, collected: false });
+            if (lvl > 3) hammers.push({ x: 170, y: 110, collected: false });
+
+            peach = { x: 104, y: 18, width: 16, height: 24 };
+            donkeyKong = { x: 44, y: 22, width: 44, height: 32 };
+
+            for(let f = 0; f < levelConfig.extraFireballs; f++) {
+                fireballs.push(new Fireball(60 + (f * 40), 160));
+            }
+        }
+
+        function getUniqueLevelName(lvl) {
+            const names = [
+                "GIRDER ASCENT", "BARREL BARRAGE", "STEEPER SLOPES", "CLASSIC RIFT", "ICE SLIP",
+                "FIRE HAZARD", "LOW GRAVITY", "TURBO SPRINGS", "WINDY HEIGHTS", "BROKEN PATHS",
+                "NARROW ESCAPE", "UPWARD SURGE", "SUDDEN GUSTS", "FROZEN GIRDERS", "TREACHEROUS RISES",
+                "BLAZING TRAILS", "MOON JUMPS", "SPEED RUN", "GALE FORCE", "FRACTURED STEPS",
+                "VERTICAL LABYRINTH", "SLIPPERY LEDGES", "STORM WINDS", "HEAVY BARRELS", "CRACKED RUNS",
+                "TITAN ASCENT", "FROZEN PEAKS", "FIERY DEPTHS", "CYCLONE RIDGE", "APEX KONG",
+                "SUPER GIRDERS", "GLACIAL RISE", "INFERNO DRIFT", "ZEPHYR PEAK", "QUANTUM LEAP",
+                "BLITZ STAGE", "TUNDRA FLOOR", "MAGMA CORE", "TEMPEST RUN", "ULTRA KONG",
+                "MEGA ASCENT", "ARCTIC RIDGE", "SOLAR FLARE", "HURRICANE ALLEY", "HYPER JUMP",
+                "NIGHTMARE RUN", "POLAR VORTEX", "SUPERNOVA", "TYPHOON SPIKE", "FINAL SHOWDOWN"
+            ];
+            return names[lvl] || `STAGE ${lvl + 1}`;
+        }
+
+        let mario = {
+            x: 40, y: 240, vx: 0, vy: 0, width: 12, height: 16, speed: 1.2,
+            jumping: false, climbing: false, onLadder: false, facing: 'right',
+            hasHammer: false, hammerTimer: 0,
+            reset() {
+                this.x = 40; this.y = 224; this.vx = 0; this.vy = 0;
+                this.jumping = false; this.climbing = false;
+                this.hasHammer = false; this.hammerTimer = 0;
+            },
+            update() {
+                if (this.hasHammer) {
+                    this.hammerTimer--;
+                    if (this.hammerTimer <= 0) this.hasHammer = false;
+                }
+
+                let targetVx = 0;
+                const moveLeft = keys['ArrowLeft'] || keys['a'] || keys['A'] || window.touchLeft;
+                const moveRight = keys['ArrowRight'] || keys['d'] || keys['D'] || window.touchRight;
+
+                if (moveLeft) { targetVx = -this.speed; this.facing = 'left'; }
+                if (moveRight) { targetVx = this.speed; this.facing = 'right'; }
+
+                if (levelConfig.slippery) {
+                    this.vx += (targetVx - this.vx) * 0.1;
+                } else {
+                    this.vx = targetVx;
+                }
+
+                this.x += this.vx + levelConfig.windForce;
+
+                this.onLadder = false;
+                let currentLadder = null;
+                for (let l of ladders) {
+                    if (Math.abs(this.x + this.width/2 - l.x) < 6 && this.y + this.height >= l.yTop && this.y <= l.yBottom) {
+                        if (l.broken) {
+                            let midY = (l.yTop + l.yBottom) / 2;
+                            if (this.y >= midY - 8 && this.y <= midY + 8) continue;
+                        }
+                        this.onLadder = true;
+                        currentLadder = l;
+                        break;
+                    }
+                }
+
+                const climbUp = keys['ArrowUp'] || keys['w'] || keys['W'] || window.touchUp;
+                const climbDown = keys['ArrowDown'] || keys['s'] || keys['S'] || window.touchDown;
+
+                if (this.onLadder && (climbUp || climbDown)) {
+                    this.climbing = true;
+                    this.x = currentLadder.x - this.width/2;
+                }
+
+                if (this.climbing) {
+                    this.vy = 0;
+                    if (climbUp) this.vy = -1.0;
+                    if (climbDown) this.vy = 1.0;
+                    this.y += this.vy;
+                    if (!this.onLadder || this.y < 30 || this.y > 240) this.climbing = false;
+                } else {
+                    if (!this.jumping) this.vy += levelConfig.gravity;
+                    else this.vy += (levelConfig.gravity + 0.1);
+                    this.y += this.vy;
+
+                    let landed = false;
+                    for (let p of platforms) {
+                        let slopeY = p.y1 + (p.y2 - p.y1) * ((this.x - p.x1) / (p.x2 - p.x1 || 1));
+                        if (this.x + this.width >= p.x1 && this.x <= p.x2) {
+                            if (this.y + this.height >= slopeY && this.y + this.height <= slopeY + 8 && this.vy >= 0) {
+                                this.y = slopeY - this.height;
+                                this.vy = 0;
+                                this.jumping = false;
+                                landed = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!landed && this.y > 240) { this.y = 240; this.vy = 0; this.jumping = false; }
+                }
+
+                if (this.x < 12) this.x = 12;
+                if (this.x > canvas.width - 24) this.x = canvas.width - 24;
+
+                hammers.forEach(h => {
+                    if (!h.collected && Math.abs((this.x + this.width/2) - (h.x + 6)) < 14 && Math.abs((this.y + this.height/2) - (h.y + 6)) < 14) {
+                        h.collected = true;
+                        this.hasHammer = true;
+                        this.hammerTimer = 450;
+                        sound.playScore();
+                    }
+                });
+            },
+            jump() {
+                if (!this.jumping && !this.climbing) {
+                    this.vy = -4.2 + levelConfig.jumpBoost;
+                    this.jumping = true;
+                    sound.playJump();
+                }
+            },
+            draw() {
+                if (this.hasHammer) {
+                    ctx.font = '14px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    let hx = this.facing === 'right' ? this.x + 16 : this.x - 4;
+                    let hy = this.y - 4 + (Math.floor(frameCount / 6) % 2 === 0 ? -2 : 2);
+                    ctx.fillText('🔨', hx, hy);
+                }
+                ctx.fillStyle = levelConfig.slippery ? '#99ccff' : '#ff2222';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.fillStyle = '#2255ff';
+                ctx.fillRect(this.x + 2, this.y + 8, this.width - 4, 8);
+                ctx.fillStyle = '#ffccaa';
+                ctx.fillRect(this.facing === 'right' ? this.x + 6 : this.x, this.y + 2, 6, 6);
+            }
+        };
+
+        class Barrel {
+            constructor(x, y, tier) {
+                this.x = x; this.y = y;
+                this.vx = (1.0 + (currentLevel * 0.02)) * levelConfig.barrelSpeedMultiplier;
+                this.vy = 0; this.tier = tier; this.radius = 7; this.theta = 0;
+                this.falling = false; this.jumpedOver = false;
+            }
+            update() {
+                if (!this.falling) {
+                    this.x += this.vx;
+                    this.theta += this.vx * 0.25;
+                    let p = platforms[this.tier];
+                    if (p) {
+                        let slopeY = p.y1 + (p.y2 - p.y1) * ((this.x - p.x1) / (p.x2 - p.x1 || 1));
+                        this.y = slopeY - this.radius * 2;
+                        if ((this.x >= p.x2 - 4 || this.x <= p.x1 + 4) && this.tier > 0) {
+                            this.falling = true;
+                            this.vy = 2.0;
+                            this.targetTier = this.tier - 1;
+                        }
+                    }
+                } else {
+                    this.y += this.vy;
+                    this.theta += 0.2;
+                    let p = platforms[this.targetTier];
+                    if (p) {
+                        let slopeY = p.y1 + (p.y2 - p.y1) * ((this.x - p.x1) / (p.x2 - p.x1 || 1));
+                        if (this.y >= slopeY - this.radius * 2) {
+                            this.y = slopeY - this.radius * 2;
+                            this.tier = this.targetTier;
+                            this.falling = false;
+                            this.vx = (Math.random() < 0.5 ? 1.0 : -1.0) * levelConfig.barrelSpeedMultiplier;
+                        }
+                    }
+                }
+                return this.x > 0 && this.x < canvas.width;
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + this.radius, this.y + this.radius);
+                ctx.rotate(this.theta);
+                ctx.fillStyle = levelConfig.slippery ? '#3399ff' : '#ff8800';
+                ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#5c2c0c'; ctx.lineWidth = 1.5; ctx.stroke();
+                ctx.fillStyle = '#00ffff';
+                ctx.fillRect(-2, -2, 4, 4);
+                ctx.restore();
+            }
+        }
+
+        class Fireball {
+            constructor(x, y) {
+                this.x = x; this.y = y; this.vx = 0.7 + (currentLevel * 0.01); this.timer = 0;
+            }
+            update() {
+                this.timer++;
+                this.x += this.vx;
+                if (this.x < 30 || this.x > 190) this.vx *= -1;
+                return true;
+            }
+            draw() {
+                ctx.fillStyle = (Math.floor(this.timer / 8) % 2 === 0) ? '#00ffff' : '#ff2200';
+                ctx.beginPath(); ctx.arc(this.x, this.y, 6, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        let barrelSpawnTimer = 0;
+        function updateGame() {
+            if (gameState !== 'PLAYING') return;
+
+            frameCount++;
+            bonusTimer -= 1/60;
+            if (bonusTimer <= 0) bonusTimer = 0;
+            bonus = Math.max(0, Math.floor(bonusTimer * 20));
+
+            mario.update();
+
+            barrelSpawnTimer++;
+            if (barrelSpawnTimer > levelConfig.spawnRate) {
+                barrels.push(new Barrel(donkeyKong.x + 28, donkeyKong.y + 12, platforms.length - 2));
+                barrelSpawnTimer = 0;
+            }
+
+            barrels = barrels.filter(b => b.update());
+            fireballs.forEach(f => f.update());
+
+            for (let b of barrels) {
+                let dx = (mario.x + mario.width/2) - (b.x + b.radius);
+                let dy = (mario.y + mario.height/2) - (b.y + b.radius);
+                let dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (!b.jumpedOver && mario.jumping && dy > 0 && Math.abs(dx) < 18) {
+                    b.jumpedOver = true;
+                    score += 100;
+                    sound.playScore();
+                }
+
+                if (dist < 10) {
+                    if (mario.hasHammer) {
+                        score += 500;
+                        sound.playHammerSmash();
+                        barrels = barrels.filter(item => item !== b);
+                    } else {
+                        triggerDeath();
+                        break;
+                    }
+                }
+            }
+
+            for (let f of fireballs) {
+                let dx = (mario.x + mario.width/2) - f.x;
+                let dy = (mario.y + mario.height/2) - f.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 10) {
+                    if (mario.hasHammer) {
+                        score += 500;
+                        sound.playHammerSmash();
+                        fireballs = fireballs.filter(item => item !== f);
+                    } else {
+                        triggerDeath();
+                        break;
+                    }
+                }
+            }
+
+            if (Math.abs(mario.x - peach.x) < 14 && Math.abs(mario.y - peach.y) < 18) {
+                currentLevel++;
+                score += bonus + 2000;
+                sound.playVictory();
+                if (currentLevel >= 50) {
+                    gameState = 'VICTORY';
+                    showEndScreen('VICTORY!', `YOU BEAT ALL 50 LEVELS!\nFINAL SCORE: ${score}`);
+                } else {
+                    loadLevel(currentLevel);
+                    bonusTimer = 195;
+                }
+            }
+
+            document.getElementById('score-display').innerText = String(score).padStart(6, '0');
+            document.getElementById('highscore-display').innerText = String(highScore).padStart(6, '0');
+            document.getElementById('level-display').innerText = currentLevel < 10 ? `L=0${currentLevel}` : `L=${currentLevel}`;
+            document.getElementById('bonus-display').innerText = String(bonus).padStart(4, '0');
+
+            const livesContainer = document.getElementById('lives-container');
+            livesContainer.innerHTML = '';
+            for (let i = 0; i < lives - 1; i++) {
+                const lifeIcon = document.createElement('div');
+                lifeIcon.style.cssText = 'width: 8px; height: 12px; background: #dc2626; border: 1px solid #3b82f6; display: inline-block;';
+                livesContainer.appendChild(lifeIcon);
+            }
+        }
+
+        function triggerDeath() {
+            lives--;
+            sound.playDeath();
+            if (lives <= 0) {
+                gameState = 'GAMEOVER';
+                showEndScreen('GAME OVER', `FINAL SCORE: ${score}`);
+            } else {
+                mario.reset();
+            }
+        }
+
+        function showEndScreen(title, subtitle) {
+            document.getElementById('message-title').innerText = title;
+            document.getElementById('message-subtitle').innerText = subtitle;
+            document.getElementById('message-screen').classList.remove('hidden');
+        }
+
+        function drawGame() {
+            ctx.fillStyle = levelConfig.slippery ? '#001122' : '#050505';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            platforms.forEach(p => {
+                ctx.strokeStyle = '#ff1493'; 
+                ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke();
+
+                ctx.strokeStyle = '#ff69b4';
+                ctx.lineWidth = 1;
+                let steps = 14;
+                for(let i=0; i<=steps; i++) {
+                    let t = i / steps;
+                    let gx = p.x1 + (p.x2 - p.x1) * t;
+                    let gy = p.y1 + (p.y2 - p.y1) * t;
+                    ctx.beginPath();
+                    ctx.moveTo(gx, gy); ctx.lineTo(gx + 4, gy + 4); ctx.lineTo(gx + 8, gy); ctx.stroke();
+                }
+            });
+
+            ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 2;
+            ladders.forEach(l => {
+                if (!l.broken) {
+                    ctx.beginPath();
+                    ctx.moveTo(l.x - 4, l.yTop); ctx.lineTo(l.x - 4, l.yBottom);
+                    ctx.moveTo(l.x + 4, l.yTop); ctx.lineTo(l.x + 4, l.yBottom);
+                    ctx.stroke();
+                    for(let y = l.yTop; y <= l.yBottom; y += 6) {
+                        ctx.beginPath(); ctx.moveTo(l.x - 4, y); ctx.lineTo(l.x + 4, y); ctx.stroke();
+                    }
+                } else {
+                    let midY = (l.yTop + l.yBottom) / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(l.x - 4, l.yTop); ctx.lineTo(l.x - 4, midY - 6);
+                    ctx.moveTo(l.x + 4, l.yTop); ctx.lineTo(l.x + 4, midY - 6);
+                    ctx.stroke();
+                    for(let y = l.yTop; y <= midY - 6; y += 6) {
+                        ctx.beginPath(); ctx.moveTo(l.x - 4, y); ctx.lineTo(l.x + 4, y); ctx.stroke();
+                    }
+                    ctx.beginPath();
+                    ctx.moveTo(l.x - 4, midY + 6); ctx.lineTo(l.x - 4, l.yBottom);
+                    ctx.moveTo(l.x + 4, midY + 6); ctx.lineTo(l.x + 4, l.yBottom);
+                    ctx.stroke();
+                    for(let y = midY + 6; y <= l.yBottom; y += 6) {
+                        ctx.beginPath(); ctx.moveTo(l.x - 4, y); ctx.lineTo(l.x + 4, y); ctx.stroke();
+                    }
+                }
+            });
+
+            ctx.fillStyle = '#0055ff';
+            ctx.fillRect(40, 216, 20, 24);
+            ctx.fillStyle = '#00ffff';
+            ctx.fillRect(43, 222, 14, 6);
+            ctx.fillStyle = (Math.floor(frameCount / 8) % 2 === 0) ? '#ffaa00' : '#ff2200';
+            ctx.beginPath(); ctx.arc(50, 210, 8, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = '#ff8800';
+            ctx.fillRect(16, 26, 12, 16);
+            ctx.fillRect(16, 44, 12, 16);
+            ctx.strokeStyle = '#5c2c0c'; ctx.lineWidth = 1;
+            ctx.strokeRect(16, 26, 12, 16);
+            ctx.strokeRect(16, 44, 12, 16);
+
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            hammers.forEach(h => {
+                if (!h.collected) ctx.fillText('🔨', h.x + 6, h.y + 6);
+            });
+
+            if (dkLoaded && dkImage.naturalWidth !== 0) {
+                ctx.drawImage(dkImage, donkeyKong.x, donkeyKong.y, donkeyKong.width, donkeyKong.height);
+            } else {
+                const dkX = donkeyKong.x, dkY = donkeyKong.y;
+                let thumpOffset = Math.floor(frameCount / 15) % 2 === 0 ? 0 : 2;
+                ctx.fillStyle = '#7a3b10';
+                ctx.fillRect(dkX + 6, dkY + 8, 28, 18);
+                ctx.fillStyle = '#d48855';
+                ctx.fillRect(dkX + 10, dkY + 12, 20, 10);
+                ctx.fillStyle = '#7a3b10';
+                ctx.fillRect(dkX + 10, dkY, 20, 12);
+                ctx.fillStyle = '#e8b896';
+                ctx.fillRect(dkX + 12, dkY + 4, 16, 8);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(dkX + 14, dkY + 5, 3, 3);
+                ctx.fillRect(dkX + 23, dkY + 5, 3, 3);
+                ctx.fillStyle = '#7a3b10';
+                ctx.fillRect(dkX - 2, dkY + 10 + thumpOffset, 10, 14);
+                ctx.fillRect(dkX + 32, dkY + 10 + thumpOffset, 10, 14);
+            }
+
+            if (peachLoaded && peachImage.naturalWidth !== 0) {
+                ctx.drawImage(peachImage, peach.x, peach.y, peach.width, peach.height);
+            } else {
+                ctx.font = '20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('👸', peach.x + 8, peach.y + 12);
+            }
+
+            barrels.forEach(b => b.draw());
+            fireballs.forEach(f => f.draw());
+            mario.draw();
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        const startGame = (e) => {
+            if(e) e.preventDefault();
+            sound.init();
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('message-screen').classList.add('hidden');
+            gameState = 'PLAYING';
+            score = 3700; lives = 3; currentLevel = 0; bonusTimer = 195;
+            loadLevel(currentLevel);
+        };
+
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('start-btn').addEventListener('touchstart', startGame, {passive: false});
+
+        document.getElementById('restart-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('touchstart', startGame, {passive: false});
+
+        loadLevel(0);
+        drawGame();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
