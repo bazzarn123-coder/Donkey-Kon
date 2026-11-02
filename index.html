@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Donkey Kong Mobile Arcade</title>
+    <title>Donkey Kong Mobile Arcade - NES Edition</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕹️</text></svg>">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         * { box-sizing: border-box; }
         body {
             font-family: 'Press Start 2P', monospace;
-            background-color: #000000;
+            background-color: #111111;
             color: #ffffff;
             touch-action: none;
             user-select: none;
@@ -35,7 +35,7 @@
             justify-content: space-between;
             align-items: flex-start;
             font-size: 8px;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
             padding: 0 8px;
             font-weight: bold;
             letter-spacing: 1px;
@@ -46,13 +46,13 @@
             text-align: center;
             font-size: 7px;
             color: #facc15;
-            margin-bottom: 4px;
-            height: 12px;
+            margin-bottom: 2px;
+            height: 10px;
         }
         .game-container {
             position: relative;
             width: 100%;
-            max-width: 420px;
+            max-width: 400px;
             aspect-ratio: 4/5;
             background: black;
             border: 2px solid #525252;
@@ -114,40 +114,114 @@
             box-shadow: 0 0 15px rgba(255,0,0,0.8);
             margin-top: 12px;
         }
-        .controls {
+
+        /* --- NES CONTROLLER UI STYLING --- */
+        .nes-pad {
             width: 100%;
-            max-width: 420px;
+            max-width: 400px;
+            height: 95px;
+            background: #2b2b2b;
+            border: 3px solid #1a1a1a;
+            border-radius: 10px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.8);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 12px;
-            padding: 0 12px;
+            padding: 0 20px;
+            margin-top: 8px;
+            position: relative;
         }
-        .ctrl-group { display: flex; gap: 8px; }
-        .ctrl-btn {
-            width: 48px;
-            height: 48px;
-            background: #262626;
-            color: white;
-            font-size: 16px;
-            border: 1px solid #525252;
-            border-radius: 12px;
+        .nes-dpad {
+            position: relative;
+            width: 75px;
+            height: 75px;
+        }
+        .nes-dpad-btn {
+            position: absolute;
+            background: #111;
+            border: 1px solid #444;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: #666;
+            font-size: 12px;
         }
-        .jump-btn {
-            width: 64px;
-            height: 48px;
-            background: #dc2626;
-            color: white;
+        .nes-dpad-btn:active, .nes-dpad-btn.active {
+            background: #000;
+            color: #fff;
+        }
+        #btn-up { top: 0; left: 25px; width: 25px; height: 26px; border-radius: 3px 3px 0 0; }
+        #btn-down { bottom: 0; left: 25px; width: 25px; height: 26px; border-radius: 0 0 3px 3px; }
+        #btn-left { top: 25px; left: 0; width: 26px; height: 25px; border-radius: 3px 0 0 3px; }
+        #btn-right { top: 25px; right: 0; width: 26px; height: 25px; border-radius: 0 3px 3px 0; }
+        .nes-dpad-center {
+            position: absolute;
+            top: 25px; left: 25px;
+            width: 25px; height: 25px;
+            background: #111;
+        }
+
+        .nes-middle {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .nes-pill-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+        .nes-pill {
+            width: 32px;
+            height: 10px;
+            background: #111;
+            border-radius: 5px;
+            border: 1px solid #444;
+        }
+        .nes-pill-label {
+            font-size: 5px;
+            color: #888;
+            letter-spacing: 1px;
+        }
+
+        .nes-action-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .nes-round-btn {
+            width: 36px;
+            height: 36px;
+            background: #cc0000;
+            border: 2px solid #880000;
+            border-radius: 50%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-family: 'Press Start 2P', monospace;
             font-size: 9px;
-            border: 1px solid #f87171;
-            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+        }
+        .nes-round-btn:active {
+            background: #990000;
+            transform: translateY(2px);
+            box-shadow: 0 2px 3px rgba(0,0,0,0.5);
+        }
+        .nes-btn-group {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
+            gap: 4px;
+        }
+        .nes-btn-label {
+            font-size: 7px;
+            color: #cc0000;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -158,7 +232,7 @@
         <div>
             <span style="color: #dc2626;">1UP</span><br>
             <span id="score-display">003700</span><br>
-            <div id="lives-container" style="display:flex; gap:4px; margin-top:4px;"></div>
+            <div id="lives-container" style="display:flex; gap:4px; margin-top:2px;"></div>
         </div>
         <div style="text-align: center;">
             <span style="color: #dc2626;">HIGH SCORE</span><br>
@@ -166,9 +240,9 @@
         </div>
         <div style="text-align: right;">
             <div style="color: #3b82f6; margin-bottom:2px;"><span id="level-display">L=00</span></div>
-            <div style="border: 1px solid #60a5fa; padding: 2px;">
-                <span style="color: #dc2626; font-size: 7px;">BONUS</span><br>
-                <span id="bonus-display" style="font-size: 9px;">3900</span>
+            <div style="border: 1px solid #60a5fa; padding: 1px 3px;">
+                <span style="color: #dc2626; font-size: 6px;">BONUS</span><br>
+                <span id="bonus-display" style="font-size: 8px;">3900</span>
             </div>
         </div>
     </div>
@@ -186,35 +260,56 @@
 
         <!-- Start Screen Overlay -->
         <div id="start-screen" class="overlay">
-            <h1 style="color: #dc2626; font-size: 14px; margin-bottom: 12px;">DONKEY KONG</h1>
-            <p style="color: #facc15; font-size: 8px; line-height: 1.6; margin-bottom: 16px;">
+            <h1 style="color: #dc2626; font-size: 13px; margin-bottom: 10px;">DONKEY KONG</h1>
+            <p style="color: #facc15; font-size: 7px; line-height: 1.6; margin-bottom: 14px;">
                 RESCUE PRINCESS PEACH ACROSS 50 LEVELS!<br>
                 AVOID BARRELS & GRAB 🔨 HAMMERS!
             </p>
-            <button id="start-btn" class="arcade-btn">TAP TO PLAY</button>
-            <div style="color: #a3a3a3; font-size: 6px; margin-top: 16px;">USE ON-SCREEN TOUCH CONTROLS BELOW</div>
+            <button id="start-btn" class="arcade-btn">PRESS START</button>
+            <div style="color: #a3a3a3; font-size: 5px; margin-top: 14px;">NES CONTROLLER READY</div>
         </div>
 
         <!-- Game Over / Victory Overlay -->
         <div id="message-screen" class="overlay hidden">
-            <h2 id="message-title" style="color: #dc2626; font-size: 12px; margin-bottom: 10px;">GAME OVER</h2>
-            <p id="message-subtitle" style="font-size: 8px; margin-bottom: 16px;">SCORE: 00000</p>
+            <h2 id="message-title" style="color: #dc2626; font-size: 11px; margin-bottom: 8px;">GAME OVER</h2>
+            <p id="message-subtitle" style="font-size: 7px; margin-bottom: 14px;">SCORE: 00000</p>
             <button id="restart-btn" class="arcade-btn">PLAY AGAIN</button>
         </div>
     </div>
 
-    <!-- Mobile Virtual Controls -->
-    <div class="controls">
-        <div class="ctrl-group">
-            <button id="btn-left" class="ctrl-btn">←</button>
-            <button id="btn-right" class="ctrl-btn">→</button>
+    <!-- NES Nintendo Entertainment System Controller Pad -->
+    <div class="nes-pad">
+        <!-- D-Pad -->
+        <div class="nes-dpad">
+            <div id="btn-up" class="nes-dpad-btn">▲</div>
+            <div id="btn-left" class="nes-dpad-btn">◀</div>
+            <div class="nes-dpad-center"></div>
+            <div id="btn-right" class="nes-dpad-btn">▶</div>
+            <div id="btn-down" class="nes-dpad-btn">▼</div>
         </div>
-        <div class="ctrl-group">
-            <button id="btn-up" class="ctrl-btn">↑</button>
-            <button id="btn-down" class="ctrl-btn">↓</button>
+
+        <!-- Select / Start Center Pills -->
+        <div class="nes-middle">
+            <div class="nes-pill-group">
+                <div class="nes-pill"></div>
+                <span class="nes-pill-label">SELECT</span>
+            </div>
+            <div class="nes-pill-group">
+                <div class="nes-pill"></div>
+                <span class="nes-pill-label">START</span>
+            </div>
         </div>
-        <div>
-            <button id="btn-jump" class="jump-btn">JUMP</button>
+
+        <!-- Red A/B Round Jump Buttons -->
+        <div class="nes-action-buttons">
+            <div class="nes-btn-group">
+                <button id="btn-b" class="nes-round-btn">B</button>
+                <span class="nes-btn-label">B</span>
+            </div>
+            <div class="nes-btn-group">
+                <button id="btn-jump" class="nes-round-btn">A</button>
+                <span class="nes-btn-label">A</span>
+            </div>
         </div>
     </div>
 
@@ -301,7 +396,7 @@
             windForce: 0,
             jumpBoost: 0,
             gravity: 0.25,
-            throwInterval: 120, // Synchronized throw timing
+            throwInterval: 120,
             hasBrokenLadders: false,
             title: "GIRDER ASCENT"
         };
@@ -322,8 +417,8 @@
         const bindTouch = (id, flagName, isJump = false) => {
             const el = document.getElementById(id);
             if (!el) return;
-            const pressOn = (e) => { e.preventDefault(); window[flagName] = true; if (isJump && gameState === 'PLAYING') mario.jump(); };
-            const pressOff = (e) => { e.preventDefault(); window[flagName] = false; };
+            const pressOn = (e) => { e.preventDefault(); el.classList.add('active'); window[flagName] = true; if (isJump && gameState === 'PLAYING') mario.jump(); };
+            const pressOff = (e) => { e.preventDefault(); el.classList.remove('active'); window[flagName] = false; };
             el.addEventListener('touchstart', pressOn, {passive: false});
             el.addEventListener('touchend', pressOff, {passive: false});
             el.addEventListener('mousedown', pressOn);
@@ -334,6 +429,7 @@
         bindTouch('btn-up', 'touchUp');
         bindTouch('btn-down', 'touchDown');
         bindTouch('btn-jump', 'jumpFlag', true);
+        bindTouch('btn-b', 'jumpFlag', true); // B button also jumps
 
         let platforms = [];
         let ladders = [];
@@ -355,7 +451,7 @@
             levelConfig.windForce = (lvl >= 25 && lvl % 3 === 0) ? 0.12 : 0;
             levelConfig.jumpBoost = (lvl >= 30 && lvl % 7 === 0) ? -0.4 : 0;
             levelConfig.gravity = 0.25;
-            levelConfig.throwInterval = Math.max(50, 120 - (lvl * 1.5)); // Barrels leave matching DK's throws
+            levelConfig.throwInterval = Math.max(50, 120 - (lvl * 1.5));
             levelConfig.hasBrokenLadders = (lvl >= 5);
 
             let twistText = "";
@@ -606,7 +702,6 @@
 
             mario.update();
 
-            // Synchronized Barrel Spawning tied to Donkey Kong's throw rhythm
             barrelSpawnTimer++;
             if (barrelSpawnTimer > levelConfig.throwInterval) {
                 barrels.push(new Barrel(donkeyKong.x + 28, donkeyKong.y + 12, platforms.length - 2));
